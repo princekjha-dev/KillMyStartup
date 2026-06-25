@@ -3,8 +3,26 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
-import { Flame, ShieldAlert, Download, Share2, CheckCircle2, XCircle, ArrowLeft, Loader2, Award, Calendar, FileText } from "lucide-react";
-;
+import {
+  Flame,
+  ShieldAlert,
+  Download,
+  Share2,
+  CheckCircle2,
+  XCircle,
+  ArrowLeft,
+  Loader2,
+  Award,
+  Calendar,
+  FileText,
+  Sparkles,
+  BarChart2,
+  Building,
+  Users,
+  FileUp,
+  Trash2,
+  Rocket,
+} from "lucide-react";
 import { isSupabaseConfigured } from "./lib/supabase";
 
 export default function Home() {
@@ -15,7 +33,7 @@ export default function Home() {
   const [revenueModel, setRevenueModel] = useState("");
   const [foundingTeam, setFoundingTeam] = useState("");
   const [stage, setStage] = useState("");
-  
+
   // PDF Parsing States
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [pdfText, setPdfText] = useState("");
@@ -28,7 +46,6 @@ export default function Home() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    // Count words in description
     const cleaned = description.trim();
     const count = cleaned === "" ? 0 : cleaned.split(/\s+/).length;
     setWordCount(count);
@@ -46,13 +63,13 @@ export default function Home() {
     setPdfFile(file);
     setPdfError("");
     setIsParsingPdf(true);
-    
+
     const formData = new FormData();
     formData.append("file", file);
 
     try {
       const response = await axios.post("http://localhost:8000/api/parse-pdf", formData, {
-        headers: { "Content-Type": "multipart/form-data" }
+        headers: { "Content-Type": "multipart/form-data" },
       });
       setPdfText(response.data.text);
     } catch (err: any) {
@@ -74,7 +91,6 @@ export default function Home() {
     e.preventDefault();
     setErrorMsg("");
 
-    // Word count validation
     if (wordCount < 50) {
       setErrorMsg("Your description must be at least 50 words to receive a meaningful roast.");
       return;
@@ -87,7 +103,6 @@ export default function Home() {
 
     setIsSubmitting(true);
 
-    // Save inputs temporarily in sessionStorage to restore on the console screen
     const payload = {
       startup_name: startupName,
       description,
@@ -95,12 +110,10 @@ export default function Home() {
       revenue_model: revenueModel || undefined,
       founding_team: foundingTeam || undefined,
       stage: stage || undefined,
-      pdf_text: pdfText || undefined
+      pdf_text: pdfText || undefined,
     };
 
     sessionStorage.setItem("pending_roast_payload", JSON.stringify(payload));
-    
-    // Redirect to the scanning console
     router.push("/console");
   };
 
@@ -113,13 +126,16 @@ export default function Home() {
           THE BRUTAL <span className="text-cyber-red">PITCH DESTROYER</span>
         </h1>
         <p className="text-gray-400 max-w-xl mx-auto text-sm sm:text-base leading-relaxed">
-          Surrounded by yes-men, soft mentors, and ghosting VCs? Enter your startup details and let the engine strip your business model, regulations, and market sizing raw.
+          Surrounded by yes-men, soft mentors, and ghosting VCs? Enter your startup details and let
+          the engine strip your business model, regulations, and market sizing raw.
         </p>
       </div>
 
       {/* Main Panel */}
-      <form onSubmit={handleSubmit} className="w-full cyber-glass rounded-xl p-6 sm:p-8 space-y-6 shadow-2xl relative overflow-hidden border-red-500/10">
-        
+      <form
+        onSubmit={handleSubmit}
+        className="w-full cyber-glass rounded-xl p-6 sm:p-8 space-y-6 shadow-2xl relative overflow-hidden border-red-500/10"
+      >
         {/* Basic Information */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           <div>
@@ -159,7 +175,15 @@ export default function Home() {
             <label className="block text-xs font-semibold text-gray-400 font-display uppercase tracking-wider">
               Startup Pitch / Description *
             </label>
-            <span className={`text-[10px] font-mono ${wordCount < 50 ? "text-cyber-yellow" : wordCount > 1000 ? "text-cyber-red" : "text-cyber-green"}`}>
+            <span
+              className={`text-[10px] font-mono ${
+                wordCount < 50
+                  ? "text-cyber-yellow"
+                  : wordCount > 1000
+                  ? "text-cyber-red"
+                  : "text-cyber-green"
+              }`}
+            >
               {wordCount} / 1000 words (Min 50)
             </span>
           </div>
@@ -173,7 +197,7 @@ export default function Home() {
           />
         </div>
 
-        {/* Structured Grid Section (Collapsible details) */}
+        {/* Structured Grid Section */}
         <div className="border-t border-gray-900 pt-6">
           <h3 className="text-xs font-bold text-gray-400 font-display mb-4 uppercase tracking-wider flex items-center space-x-1.5">
             <Sparkles className="h-4 w-4 text-cyber-red" />
@@ -182,7 +206,7 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
               <label className="block text-xs font-semibold text-gray-400 font-display mb-1.5 uppercase tracking-wider flex items-center space-x-1">
-                <BarChart2 className="h-3 w.5 text-gray-500" />
+                <BarChart2 className="h-3 w-3 text-gray-500" />
                 <span>Target Market / User</span>
               </label>
               <input
@@ -227,7 +251,7 @@ export default function Home() {
           <label className="block text-xs font-semibold text-gray-400 font-display mb-1.5 uppercase tracking-wider">
             Pitch Deck Document (Optional PDF - Text Parsing Only)
           </label>
-          
+
           {!pdfFile ? (
             <div className="border border-dashed border-gray-800 rounded-lg p-6 bg-cyber-dark/40 flex flex-col items-center justify-center hover:bg-cyber-dark/80 transition relative">
               <input
@@ -239,9 +263,11 @@ export default function Home() {
               />
               <FileUp className="h-8 w-8 text-gray-500 mb-2" />
               <p className="text-xs text-gray-400 font-medium">
-                {isParsingPdf ? "Extracting layout text..." : "Drag and drop your deck PDF, or click to browse"}
+                {isParsingPdf
+                  ? "Extracting layout text..."
+                  : "Drag and drop your deck PDF, or click to browse"}
               </p>
-              <p className="text-[10px] text-gray-650 mt-1 font-mono">
+              <p className="text-[10px] text-gray-500 mt-1 font-mono">
                 Supports standard PDF text sheets (Images are skipped)
               </p>
             </div>
@@ -252,18 +278,18 @@ export default function Home() {
                   PDF
                 </div>
                 <div className="overflow-hidden">
-                  <p className="text-xs text-gray-300 font-medium truncate">
-                    {pdfFile.name}
-                  </p>
+                  <p className="text-xs text-gray-300 font-medium truncate">{pdfFile.name}</p>
                   <p className="text-[10px] text-cyber-green font-mono">
-                    {pdfText ? `Parsed ${pdfText.split(/\s+/).length} words successfully.` : "Processing..."}
+                    {pdfText
+                      ? `Parsed ${pdfText.split(/\s+/).length} words successfully.`
+                      : "Processing..."}
                   </p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={handleClearPdf}
-                className="p-2 rounded bg-gray-900 text-gray-400 hover:text-cyber-red hover:bg-gray-850 transition"
+                className="p-2 rounded bg-gray-900 text-gray-400 hover:text-cyber-red transition"
               >
                 <Trash2 className="h-4 w-4" />
               </button>
@@ -278,7 +304,7 @@ export default function Home() {
           )}
         </div>
 
-        {/* Display Error Message */}
+        {/* Error Message */}
         {errorMsg && (
           <div className="p-3.5 rounded border border-cyber-red/20 bg-cyber-red/5 text-xs text-cyber-red font-medium flex items-center">
             <ShieldAlert className="h-4 w-4 mr-2 flex-shrink-0" />
