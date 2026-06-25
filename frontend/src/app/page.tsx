@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
-import { FileUp, Trash2, ShieldAlert, Sparkles, Building, BarChart2, Users, Rocket, HelpCircle } from "lucide-react";
+import { Flame, ShieldAlert, Download, Share2, CheckCircle2, XCircle, ArrowLeft, Loader2, Award, Calendar, FileText } from "lucide-react";
+;
 import { isSupabaseConfigured } from "./lib/supabase";
 
 export default function Home() {
