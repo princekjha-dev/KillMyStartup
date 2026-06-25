@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import axios from "axios";
-import { Flame, ShieldAlert, Download, Twitter, CheckCircle2, XCircle, ArrowLeft, Loader2, Award, Calendar, FileText } from "lucide-react";
+import { Flame, ShieldAlert, Download, XIcon, CheckCircle2, XCircle, ArrowLeft, Loader2, Award, Calendar, FileText } from "lucide-react";
 import Link from "next/link";
 import confetti from "canvas-confetti";
 
