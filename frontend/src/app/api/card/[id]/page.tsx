@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import axios from "axios";
-import { Flame, ShieldAlert, Download, XIcon, CheckCircle2, XCircle, ArrowLeft, Loader2, Award, Calendar, FileText } from "lucide-react";
+import { Flame, ShieldAlert, Download, CheckCircle2, XCircle, ArrowLeft, Loader2, Award, Calendar, FileText } from "lucide-react";
 import Link from "next/link";
 import confetti from "canvas-confetti";
 
@@ -128,8 +128,6 @@ export default function RoastDetail() {
     if (score >= 40) return "text-cyber-yellow border-cyber-yellow/30 bg-cyber-yellow/5";
     return "text-cyber-red border-cyber-red/30 bg-cyber-red/5";
   };
-
-  const shareText = `My startup idea "${data.startup_name}" just took on the Brutal Pitch Destroyer and survived ${survivedCount} of 7 attacks! See the roast here: ${window.location.origin}/roast/${data.id} #KillMyStartupIdea`;
 
   return (
     <div className="w-full space-y-8">
@@ -313,15 +311,7 @@ export default function RoastDetail() {
                 <span>Save PNG</span>
               </button>
 
-              <a
-                href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex-1 px-4 py-2.5 bg-[#1DA1F2] hover:bg-[#1DA1F2]/90 text-white rounded font-display text-xs font-semibold transition flex items-center justify-center space-x-1.5"
-              >
-                <XIcon className="h-4 w-4" />
-                <span>Share Roast</span>
-              </a>
+
             </div>
           </div>
 
