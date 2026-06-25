@@ -48,7 +48,6 @@ export default function RoastDetail() {
         const response = await axios.get(`http://localhost:8000/api/roasts/${id}`);
         setData(response.data);
 
-        // If score is high (>= 60), throw confetti!
         if (response.data.survival_score >= 60) {
           confetti({
             particleCount: 150,
@@ -107,14 +106,10 @@ export default function RoastDetail() {
     );
   }
 
-  // Count survived attacks
   const survivedCount = Object.values(data.vectors).filter(v => v.survived).length;
 
-  // Format analysis text to highlight [UNCERTAIN] in yellow
   const renderAnalysis = (text: string) => {
     if (!text) return "";
-    
-    // Split text by [UNCERTAIN] tags
     const parts = text.split(/(\[UNCERTAIN\])/g);
     return parts.map((part, index) => {
       if (part === "[UNCERTAIN]") {
@@ -190,7 +185,7 @@ export default function RoastDetail() {
 
       {/* Grid Dashboard */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
+
         {/* Left Side: Vectors Accordion & Detailed Critique */}
         <div className="lg:col-span-2 space-y-6">
           <div className="cyber-glass rounded-xl p-5 shadow-xl border-gray-900">
@@ -298,7 +293,7 @@ export default function RoastDetail() {
             <h2 className="font-display text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">
               Viral Roast Card
             </h2>
-            
+
             {/* Satori Generated Card Image */}
             <div className="border border-gray-850 rounded-lg overflow-hidden bg-cyber-dark mb-4 aspect-[1200/630]">
               <img
@@ -317,20 +312,20 @@ export default function RoastDetail() {
                 <Download className="h-4 w-4" />
                 <span>Save PNG</span>
               </button>
-              
+
               <a
                 href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex-1 px-4 py-2.5 bg-[#1DA1F2] hover:bg-[#1DA1F2]/90 text-white rounded font-display text-xs font-semibold transition flex items-center justify-center space-x-1.5"
               >
-                <Twitter className="h-4 w-4" />
+                <XIcon className="h-4 w-4" />
                 <span>Share Roast</span>
               </a>
             </div>
           </div>
 
-          {/* Speculative assumptions (What Would Need to Be True) */}
+          {/* What Would Need to Be True */}
           {data.survival_score < 40 && data.true_conditions && data.true_conditions.length > 0 && (
             <div className="cyber-glass rounded-xl p-5 shadow-xl border-gray-900 bg-cyber-yellow/5 border-cyber-yellow/15">
               <h2 className="font-display text-sm font-bold text-cyber-yellow uppercase tracking-widest mb-3 flex items-center">
