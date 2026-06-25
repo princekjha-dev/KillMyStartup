@@ -1,333 +1,366 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
 import axios from "axios";
-import {
-  Flame,
-  ShieldAlert,
-  Download,
-  Share2,
-  CheckCircle2,
-  XCircle,
-  ArrowLeft,
-  Loader2,
-  Award,
-  Calendar,
-  FileText,
-  Sparkles,
-  BarChart2,
-  Building,
-  Users,
-  FileUp,
-  Trash2,
-  Rocket,
-} from "lucide-react";
-import { isSupabaseConfigured } from "./lib/supabase";
+import { Flame, ShieldAlert, Download, CheckCircle2, XCircle, ArrowLeft, Loader2, Award, Calendar, FileText } from "lucide-react";
 
-export default function Home() {
+const XIcon = ({ className }: { className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={className}>
+    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.747l7.73-8.835L1.254 2.25H8.08l4.259 5.622L18.244 2.25zm-1.161 17.52h1.833L7.084 4.126H5.117L17.083 19.77z" />
+  </svg>
+);
+import Link from "next/link";
+import confetti from "canvas-confetti";
+
+interface VectorResult {
+  name: string;
+  description: string;
+  analysis: string;
+  confidence: "HIGH" | "MEDIUM" | "UNCERTAIN";
+  survival_points: number;
+  survived: boolean;
+  killer_quote: string;
+}
+
+interface RoastData {
+  id: string;
+  startup_name: string;
+  raw_input: string;
+  target_market?: string;
+  revenue_model?: string;
+  stage?: string;
+  survival_score: number;
+  vectors: Record<string, VectorResult>;
+  true_conditions?: string[];
+  created_at: string;
+}
+
+export default function RoastDetail() {
+  const params = useParams();
   const router = useRouter();
-  const [startupName, setStartupName] = useState("");
-  const [description, setDescription] = useState("");
-  const [targetMarket, setTargetMarket] = useState("");
-  const [revenueModel, setRevenueModel] = useState("");
-  const [foundingTeam, setFoundingTeam] = useState("");
-  const [stage, setStage] = useState("");
+  const id = params.id as string;
 
-  // PDF Parsing States
-  const [pdfFile, setPdfFile] = useState<File | null>(null);
-  const [pdfText, setPdfText] = useState("");
-  const [isParsingPdf, setIsParsingPdf] = useState(false);
-  const [pdfError, setPdfError] = useState("");
-
-  // UI Validation
-  const [wordCount, setWordCount] = useState(0);
+  const [data, setData] = useState<RoastData | null>(null);
+  const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [activeVector, setActiveVector] = useState<string>("market_reality");
 
   useEffect(() => {
-    const cleaned = description.trim();
-    const count = cleaned === "" ? 0 : cleaned.split(/\s+/).length;
-    setWordCount(count);
-  }, [description]);
+    if (!id) return;
 
-  const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const fetchRoast = async () => {
+      try {
+        const response = await axios.get(`http://localhost:8000/api/roasts/${id}`);
+        setData(response.data);
 
-    if (file.type !== "application/pdf") {
-      setPdfError("Please upload a valid PDF file.");
-      return;
-    }
-
-    setPdfFile(file);
-    setPdfError("");
-    setIsParsingPdf(true);
-
-    const formData = new FormData();
-    formData.append("file", file);
-
-    try {
-      const response = await axios.post("http://localhost:8000/api/parse-pdf", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      setPdfText(response.data.text);
-    } catch (err: any) {
-      console.error(err);
-      setPdfError(err.response?.data?.detail || "Failed to extract text from PDF.");
-      setPdfFile(null);
-    } finally {
-      setIsParsingPdf(false);
-    }
-  };
-
-  const handleClearPdf = () => {
-    setPdfFile(null);
-    setPdfText("");
-    setPdfError("");
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrorMsg("");
-
-    if (wordCount < 50) {
-      setErrorMsg("Your description must be at least 50 words to receive a meaningful roast.");
-      return;
-    }
-
-    if (wordCount > 1000) {
-      setErrorMsg("Your description exceeds the maximum length of 1000 words. Keep it concise.");
-      return;
-    }
-
-    setIsSubmitting(true);
-
-    const payload = {
-      startup_name: startupName,
-      description,
-      target_market: targetMarket || undefined,
-      revenue_model: revenueModel || undefined,
-      founding_team: foundingTeam || undefined,
-      stage: stage || undefined,
-      pdf_text: pdfText || undefined,
+        // If score is high (>= 60), throw confetti!
+        if (response.data.survival_score >= 60) {
+          confetti({
+            particleCount: 150,
+            spread: 80,
+            origin: { y: 0.6 },
+            colors: ["#10B981", "#3B82F6", "#FBBF24"]
+          });
+        }
+      } catch (err: any) {
+        console.error(err);
+        setErrorMsg(err.response?.data?.detail || "Could not retrieve roast data.");
+      } finally {
+        setLoading(false);
+      }
     };
 
-    sessionStorage.setItem("pending_roast_payload", JSON.stringify(payload));
-    router.push("/console");
+    fetchRoast();
+  }, [id]);
+
+  const handleDownloadCard = async () => {
+    if (!data) return;
+    try {
+      const response = await fetch(`/api/card/${data.id}`);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${data.startup_name.replace(/\s+/g, "_")}_roast_card.png`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } catch (e) {
+      console.error("Failed to download card", e);
+    }
   };
 
-  return (
-    <div className="w-full max-w-4xl mx-auto flex flex-col items-center">
-      {/* Title */}
-      <div className="text-center mb-12 relative">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-cyber-red/10 rounded-full blur-3xl -z-10" />
-        <h1 className="font-display text-4xl sm:text-6xl font-extrabold tracking-tight text-white mb-4 uppercase">
-          THE BRUTAL <span className="text-cyber-red">PITCH DESTROYER</span>
-        </h1>
-        <p className="text-gray-400 max-w-xl mx-auto text-sm sm:text-base leading-relaxed">
-          Surrounded by yes-men, soft mentors, and ghosting VCs? Enter your startup details and let
-          the engine strip your business model, regulations, and market sizing raw.
-        </p>
+  if (loading) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center min-h-[50vh]">
+        <Loader2 className="h-10 w-10 text-cyber-red animate-spin mb-4" />
+        <p className="text-sm text-gray-500 font-mono">LOADING DESTRUCTION REPORT...</p>
       </div>
+    );
+  }
 
-      {/* Main Panel */}
-      <form
-        onSubmit={handleSubmit}
-        className="w-full cyber-glass rounded-xl p-6 sm:p-8 space-y-6 shadow-2xl relative overflow-hidden border-red-500/10"
-      >
-        {/* Basic Information */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-          <div>
-            <label className="block text-xs font-semibold text-gray-400 font-display mb-1.5 uppercase tracking-wider">
-              Startup Name *
-            </label>
-            <input
-              type="text"
-              required
-              value={startupName}
-              onChange={(e) => setStartupName(e.target.value)}
-              placeholder="e.g. ChaiCommerce"
-              className="w-full bg-cyber-dark/80 border border-gray-800 rounded px-3 py-2.5 text-sm text-white focus:outline-none focus:border-cyber-red transition font-display"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-gray-400 font-display mb-1.5 uppercase tracking-wider">
-              Operational Stage
-            </label>
-            <select
-              value={stage}
-              onChange={(e) => setStage(e.target.value)}
-              className="w-full bg-cyber-dark/80 border border-gray-800 rounded px-3 py-2.5 text-sm text-white focus:outline-none focus:border-cyber-red transition"
-            >
-              <option value="">Select Stage...</option>
-              <option value="Idea Phase">Idea Phase</option>
-              <option value="Pre-MVP / Building">Pre-MVP / Building</option>
-              <option value="MVP Completed / Testing">MVP Completed / Testing</option>
-              <option value="Early Revenue / Scale">Early Revenue / Scale</option>
-            </select>
+  if (errorMsg || !data) {
+    return (
+      <div className="w-full max-w-md mx-auto text-center py-12 px-6 bg-cyber-red/5 border border-cyber-red/20 rounded-xl mt-8">
+        <ShieldAlert className="h-12 w-12 text-cyber-red mx-auto mb-3" />
+        <h3 className="font-display text-lg font-bold text-white mb-2 uppercase">Report Unavailable</h3>
+        <p className="text-xs text-gray-400 mb-6">{errorMsg || "The requested roast could not be found."}</p>
+        <Link href="/" className="px-6 py-2 bg-gray-950 border border-gray-800 rounded font-display text-xs font-semibold text-white hover:bg-gray-900 transition">
+          Return to Launcher
+        </Link>
+      </div>
+    );
+  }
+
+  // Count survived attacks
+  const survivedCount = Object.values(data.vectors).filter(v => v.survived).length;
+
+  // Format analysis text to highlight [UNCERTAIN] in yellow
+  const renderAnalysis = (text: string) => {
+    if (!text) return "";
+    
+    // Split text by [UNCERTAIN] tags
+    const parts = text.split(/(\[UNCERTAIN\])/g);
+    return parts.map((part, index) => {
+      if (part === "[UNCERTAIN]") {
+        return (
+          <span key={index} className="bg-cyber-yellow/20 text-cyber-yellow px-1 py-0.5 rounded font-mono text-[11px] font-bold border border-cyber-yellow/20">
+            [UNCERTAIN]
+          </span>
+        );
+      }
+      return part;
+    });
+  };
+
+  const getScoreColor = (score: number) => {
+    if (score >= 70) return "text-cyber-green border-cyber-green/30 bg-cyber-green/5";
+    if (score >= 40) return "text-cyber-yellow border-cyber-yellow/30 bg-cyber-yellow/5";
+    return "text-cyber-red border-cyber-red/30 bg-cyber-red/5";
+  };
+
+  const shareText = `My startup idea "${data.startup_name}" just took on the Brutal Pitch Destroyer and survived ${survivedCount} of 7 attacks! See the roast here: ${window.location.origin}/roast/${data.id} #KillMyStartupIdea`;
+
+  return (
+    <div className="w-full space-y-8">
+      {/* Back Button */}
+      <Link href="/" className="inline-flex items-center space-x-2 text-xs text-gray-400 hover:text-white transition">
+        <ArrowLeft className="h-4 w-4" />
+        <span>Return to Launcher</span>
+      </Link>
+
+      {/* Header Info */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between border-b border-gray-900 pb-6 gap-4">
+        <div>
+          <span className="text-[10px] text-cyber-red font-mono tracking-widest uppercase">
+            ROAST ANALYTICAL DOSSIER
+          </span>
+          <h1 className="font-display text-3xl sm:text-4xl font-extrabold text-white uppercase mt-1">
+            {data.startup_name}
+          </h1>
+          <div className="flex items-center space-x-4 mt-2 text-xs text-gray-500 font-mono">
+            <span className="flex items-center">
+              <Calendar className="h-3.5 w-3.5 mr-1" />
+              {new Date(data.created_at).toLocaleDateString()}
+            </span>
+            {data.stage && (
+              <span className="px-2 py-0.5 rounded bg-gray-900 border border-gray-800 text-[10px]">
+                {data.stage}
+              </span>
+            )}
           </div>
         </div>
 
-        {/* Pitch Text Area */}
-        <div>
-          <div className="flex justify-between items-center mb-1.5">
-            <label className="block text-xs font-semibold text-gray-400 font-display uppercase tracking-wider">
-              Startup Pitch / Description *
-            </label>
-            <span
-              className={`text-[10px] font-mono ${
-                wordCount < 50
-                  ? "text-cyber-yellow"
-                  : wordCount > 1000
-                  ? "text-cyber-red"
-                  : "text-cyber-green"
-              }`}
-            >
-              {wordCount} / 1000 words (Min 50)
+        {/* Score Shield */}
+        <div className={`flex items-center space-x-4 border rounded-xl p-4 md:px-6 ${getScoreColor(data.survival_score)}`}>
+          <div className="text-center">
+            <span className="block text-[10px] font-mono tracking-wider uppercase opacity-80">
+              Survival Score
+            </span>
+            <span className="font-display text-3xl md:text-4xl font-black">
+              {data.survival_score}/100
             </span>
           </div>
-          <textarea
-            required
-            rows={8}
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Explain what your startup does, who it serves, how you solve the problem, and why you are building this. Be honest, the LLM will call out vague jargon instantly..."
-            className="w-full bg-cyber-dark/80 border border-gray-800 rounded px-3 py-3 text-sm text-white focus:outline-none focus:border-cyber-red transition leading-relaxed"
-          />
-        </div>
-
-        {/* Structured Grid Section */}
-        <div className="border-t border-gray-900 pt-6">
-          <h3 className="text-xs font-bold text-gray-400 font-display mb-4 uppercase tracking-wider flex items-center space-x-1.5">
-            <Sparkles className="h-4 w-4 text-cyber-red" />
-            <span>Structured Data Fields (Optional)</span>
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div>
-              <label className="block text-xs font-semibold text-gray-400 font-display mb-1.5 uppercase tracking-wider flex items-center space-x-1">
-                <BarChart2 className="h-3 w-3 text-gray-500" />
-                <span>Target Market / User</span>
-              </label>
-              <input
-                type="text"
-                value={targetMarket}
-                onChange={(e) => setTargetMarket(e.target.value)}
-                placeholder="e.g. Tier 2 Indian merchants"
-                className="w-full bg-cyber-dark/80 border border-gray-800 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-cyber-red transition"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-400 font-display mb-1.5 uppercase tracking-wider flex items-center space-x-1">
-                <Building className="h-3 w-3 text-gray-500" />
-                <span>Revenue Model</span>
-              </label>
-              <input
-                type="text"
-                value={revenueModel}
-                onChange={(e) => setRevenueModel(e.target.value)}
-                placeholder="e.g. 1.5% transaction commission"
-                className="w-full bg-cyber-dark/80 border border-gray-800 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-cyber-red transition"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-400 font-display mb-1.5 uppercase tracking-wider flex items-center space-x-1">
-                <Users className="h-3 w-3 text-gray-500" />
-                <span>Founding Team Size</span>
-              </label>
-              <input
-                type="text"
-                value={foundingTeam}
-                onChange={(e) => setFoundingTeam(e.target.value)}
-                placeholder="e.g. 2 co-founders, 1 dev"
-                className="w-full bg-cyber-dark/80 border border-gray-800 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-cyber-red transition"
-              />
-            </div>
+          <div className="h-10 w-[1px] bg-white/10" />
+          <div className="text-xs font-medium">
+            <p className="uppercase tracking-wider">
+              {data.survival_score >= 70 ? "REAL POTENTIAL" : data.survival_score >= 40 ? "FRAGILE HYPOTHESIS" : "CRITICAL CASUALTY"}
+            </p>
+            <p className="text-[10px] opacity-75 mt-0.5">
+              Survived {survivedCount} of 7 attack vectors
+            </p>
           </div>
         </div>
+      </div>
 
-        {/* Pitch Deck Upload */}
-        <div className="border-t border-gray-900 pt-6">
-          <label className="block text-xs font-semibold text-gray-400 font-display mb-1.5 uppercase tracking-wider">
-            Pitch Deck Document (Optional PDF - Text Parsing Only)
-          </label>
+      {/* Grid Dashboard */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        {/* Left Side: Vectors Accordion & Detailed Critique */}
+        <div className="lg:col-span-2 space-y-6">
+          <div className="cyber-glass rounded-xl p-5 shadow-xl border-gray-900">
+            <h2 className="font-display text-sm font-bold text-gray-400 uppercase tracking-widest mb-4 flex items-center">
+              <Flame className="h-4 w-4 text-cyber-red mr-2" />
+              <span>7 Destruction Vector Reports</span>
+            </h2>
 
-          {!pdfFile ? (
-            <div className="border border-dashed border-gray-800 rounded-lg p-6 bg-cyber-dark/40 flex flex-col items-center justify-center hover:bg-cyber-dark/80 transition relative">
-              <input
-                type="file"
-                accept="application/pdf"
-                onChange={handlePdfUpload}
-                className="absolute inset-0 opacity-0 cursor-pointer"
-                disabled={isParsingPdf}
-              />
-              <FileUp className="h-8 w-8 text-gray-500 mb-2" />
-              <p className="text-xs text-gray-400 font-medium">
-                {isParsingPdf
-                  ? "Extracting layout text..."
-                  : "Drag and drop your deck PDF, or click to browse"}
-              </p>
-              <p className="text-[10px] text-gray-500 mt-1 font-mono">
-                Supports standard PDF text sheets (Images are skipped)
-              </p>
+            {/* Grid of vector selectors */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-7 gap-2 mb-6">
+              {Object.entries(data.vectors).map(([key, vector]) => (
+                <button
+                  key={key}
+                  onClick={() => setActiveVector(key)}
+                  className={`px-2 py-3 rounded text-center border font-display text-[11px] font-bold uppercase transition flex flex-col items-center justify-between gap-1.5 ${
+                    activeVector === key
+                      ? "bg-cyber-red/10 border-cyber-red text-white"
+                      : "bg-cyber-dark/40 border-gray-850 text-gray-450 hover:bg-gray-900 hover:text-white"
+                  }`}
+                >
+                  <span className="truncate max-w-[80px]">{vector.name.split(" ")[0]}</span>
+                  {vector.survived ? (
+                    <span className="text-[9px] text-cyber-green flex items-center font-mono">
+                      PASSED ({vector.survival_points})
+                    </span>
+                  ) : (
+                    <span className="text-[9px] text-cyber-red flex items-center font-mono">
+                      FAILED ({vector.survival_points})
+                    </span>
+                  )}
+                </button>
+              ))}
             </div>
-          ) : (
-            <div className="border border-gray-800 rounded-lg p-4 bg-gray-950 flex items-center justify-between">
-              <div className="flex items-center space-x-3 overflow-hidden">
-                <div className="h-9 w-9 rounded bg-cyber-red/10 border border-cyber-red/20 flex items-center justify-center text-cyber-red text-xs font-mono font-bold">
-                  PDF
+
+            {/* Critique Output Area */}
+            {activeVector && data.vectors[activeVector] && (
+              <div className="bg-cyber-dark/80 border border-gray-850 rounded-lg p-5 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-gray-850 pb-3 gap-2">
+                  <div>
+                    <h3 className="font-display text-base font-extrabold text-white uppercase">
+                      {data.vectors[activeVector].name}
+                    </h3>
+                    <p className="text-[10px] text-gray-500 font-mono mt-0.5">
+                      {data.vectors[activeVector].description}
+                    </p>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <span className={`px-2.5 py-0.5 rounded text-[10px] font-mono font-bold border ${
+                      data.vectors[activeVector].confidence === "HIGH"
+                        ? "text-cyber-green border-cyber-green/20 bg-cyber-green/5"
+                        : data.vectors[activeVector].confidence === "MEDIUM"
+                        ? "text-cyber-blue border-cyber-blue/20 bg-cyber-blue/5"
+                        : "text-cyber-yellow border-cyber-yellow/20 bg-cyber-yellow/5"
+                    }`}>
+                      CONFIDENCE: {data.vectors[activeVector].confidence}
+                    </span>
+                    <span className={`text-xs font-mono font-bold ${
+                      data.vectors[activeVector].survived ? "text-cyber-green" : "text-cyber-red"
+                    }`}>
+                      POINTS: {data.vectors[activeVector].survival_points}/10
+                    </span>
+                  </div>
                 </div>
-                <div className="overflow-hidden">
-                  <p className="text-xs text-gray-300 font-medium truncate">{pdfFile.name}</p>
-                  <p className="text-[10px] text-cyber-green font-mono">
-                    {pdfText
-                      ? `Parsed ${pdfText.split(/\s+/).length} words successfully.`
-                      : "Processing..."}
-                  </p>
+
+                {/* Brutal Quote */}
+                <div className="border-l-4 border-cyber-red bg-cyber-red/5 p-4 rounded text-sm italic font-medium text-gray-300">
+                  &ldquo;{data.vectors[activeVector].killer_quote}&rdquo;
+                </div>
+
+                {/* Analysis Body */}
+                <div className="text-sm text-gray-400 leading-relaxed space-y-3 whitespace-pre-line font-light">
+                  {renderAnalysis(data.vectors[activeVector].analysis)}
                 </div>
               </div>
+            )}
+          </div>
+
+          {/* PDF Report trigger & Input Summary */}
+          <div className="cyber-glass rounded-xl p-5 shadow-xl border-gray-900 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center space-x-3">
+              <div className="h-10 w-10 bg-gray-900 border border-gray-800 rounded-lg flex items-center justify-center text-gray-400">
+                <FileText className="h-5 w-5" />
+              </div>
+              <div>
+                <h4 className="text-xs font-bold text-white uppercase tracking-wider">Export Full Report</h4>
+                <p className="text-[10px] text-gray-500">Download the detailed analysis dossier as a PDF.</p>
+              </div>
+            </div>
+            <a
+              href={`http://localhost:8000/api/roasts/${data.id}/pdf`}
+              target="_blank"
+              rel="noreferrer"
+              className="w-full sm:w-auto px-5 py-2.5 bg-gray-950 border border-gray-800 rounded font-display text-xs font-bold text-gray-300 hover:text-white hover:bg-gray-900 transition flex items-center justify-center space-x-1.5"
+            >
+              <Download className="h-4 w-4" />
+              <span>Download PDF</span>
+            </a>
+          </div>
+        </div>
+
+        {/* Right Side: Card Share & Assumptions */}
+        <div className="space-y-6">
+          {/* Viral share card */}
+          <div className="cyber-glass rounded-xl p-5 shadow-xl border-gray-900 text-center">
+            <h2 className="font-display text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">
+              Viral Roast Card
+            </h2>
+            
+            {/* Satori Generated Card Image */}
+            <div className="border border-gray-850 rounded-lg overflow-hidden bg-cyber-dark mb-4 aspect-[1200/630]">
+              <img
+                src={`/api/card/${data.id}`}
+                alt={`${data.startup_name} Roast Card`}
+                className="w-full h-auto object-cover"
+                loading="lazy"
+              />
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3">
               <button
-                type="button"
-                onClick={handleClearPdf}
-                className="p-2 rounded bg-gray-900 text-gray-400 hover:text-cyber-red transition"
+                onClick={handleDownloadCard}
+                className="flex-1 px-4 py-2.5 bg-gray-900 border border-gray-800 rounded font-display text-xs font-semibold text-gray-300 hover:text-white transition flex items-center justify-center space-x-1.5"
               >
-                <Trash2 className="h-4 w-4" />
+                <Download className="h-4 w-4" />
+                <span>Save PNG</span>
               </button>
+              
+              <a
+                href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 px-4 py-2.5 bg-[#1DA1F2] hover:bg-[#1DA1F2]/90 text-white rounded font-display text-xs font-semibold transition flex items-center justify-center space-x-1.5"
+              >
+                <XIcon className="h-4 w-4" />
+                <span>Share Roast</span>
+              </a>
+            </div>
+          </div>
+
+          {/* Speculative assumptions (What Would Need to Be True) */}
+          {data.survival_score < 40 && data.true_conditions && data.true_conditions.length > 0 && (
+            <div className="cyber-glass rounded-xl p-5 shadow-xl border-gray-900 bg-cyber-yellow/5 border-cyber-yellow/15">
+              <h2 className="font-display text-sm font-bold text-cyber-yellow uppercase tracking-widest mb-3 flex items-center">
+                <Award className="h-4 w-4 text-cyber-yellow mr-2" />
+                <span>What Would Need to Be True</span>
+              </h2>
+              <p className="text-[11px] text-cyber-yellow/70 mb-4 leading-normal">
+                This idea scored below 40. For it to defy the odds and succeed, the following underlying assumptions must hold:
+              </p>
+              <ul className="space-y-3">
+                {data.true_conditions.map((condition, idx) => (
+                  <li key={idx} className="flex items-start space-x-2 text-xs text-gray-300 leading-normal border-b border-gray-850/50 pb-2 last:border-b-0 last:pb-0">
+                    <span className="text-cyber-yellow font-bold mt-0.5">•</span>
+                    <span>{condition}</span>
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-4 text-[10px] text-gray-500 font-mono text-center">
+                * Speculative analysis based on critical weaknesses.
+              </div>
             </div>
           )}
-
-          {pdfError && (
-            <p className="text-xs font-semibold text-cyber-red mt-2 flex items-center">
-              <ShieldAlert className="h-4 w-4 mr-1 flex-shrink-0" />
-              <span>{pdfError}</span>
-            </p>
-          )}
         </div>
-
-        {/* Error Message */}
-        {errorMsg && (
-          <div className="p-3.5 rounded border border-cyber-red/20 bg-cyber-red/5 text-xs text-cyber-red font-medium flex items-center">
-            <ShieldAlert className="h-4 w-4 mr-2 flex-shrink-0" />
-            <span>{errorMsg}</span>
-          </div>
-        )}
-
-        {/* Action Button */}
-        <div className="pt-4 flex flex-col sm:flex-row items-center sm:justify-between space-y-4 sm:space-y-0 border-t border-gray-900">
-          <div className="flex items-center text-xs text-gray-500">
-            <ShieldAlert className="h-4 w-4 text-gray-600 mr-1.5 flex-shrink-0" />
-            <p>Roast is AI-generated critique, not verified due diligence. Treat as a stress test.</p>
-          </div>
-          <button
-            type="submit"
-            disabled={wordCount < 50 || wordCount > 1000 || isParsingPdf}
-            className="w-full sm:w-auto px-8 py-3 bg-cyber-red text-white font-display text-sm font-bold rounded hover:bg-cyber-red/90 transition shadow-lg shadow-cyber-red/20 disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wider flex items-center justify-center space-x-2"
-          >
-            <Rocket className="h-4 w-4" />
-            <span>Destroy My Idea</span>
-          </button>
-        </div>
-      </form>
+      </div>
     </div>
   );
 }
